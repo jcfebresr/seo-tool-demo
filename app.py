@@ -4,7 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from categorizer import (
     categorize_urls_automatic,
-    categorize_urls_nlp,
     categorize_urls_manual
 )
 import google.generativeai as genai
@@ -38,7 +37,7 @@ with st.sidebar:
     # Modo de categorización
     mode = st.radio(
         "Modo de Categorización",
-        ["Automático (Patrones)", "NLP (IA Semántica)", "Manual"],
+        ["Automático (Patrones)", "Manual"],
         help="Automático: Detecta por estructura de URL. NLP: Usa similitud semántica. Manual: Defines tú las categorías."
     )
     
@@ -119,10 +118,7 @@ if client_file:
             elif mode == "Manual":
                 results = categorize_urls_manual(urls_client, manual_cats)
                 master_cats = manual_cats
-            else:  # NLP
-                with st.spinner("🧠 Cargando modelo NLP... (puede tardar 30 seg la primera vez)"):
-                    results, master_cats = categorize_urls_automatic(urls_client)
-                    results = categorize_urls_nlp(urls_client, master_cats)
+            if mode == "Manual":
             
             # Agregar categorías al DataFrame
             results_dict = {r['url']: r['category'] for r in results}
