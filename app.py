@@ -23,7 +23,7 @@ st.set_page_config(
 st.title("🎯 SEO Competitive Analysis Tool")
 st.markdown("""
 Herramienta profesional para categorización automática de URLs y análisis competitivo SEO.
-Utiliza detección por patrones, NLP con similitud semántica, y generación de reportes con IA.
+Utiliza detección por patrones y generación de reportes con IA.
 """)
 
 st.divider()
@@ -38,7 +38,7 @@ with st.sidebar:
     mode = st.radio(
         "Modo de Categorización",
         ["Automático (Patrones)", "Manual"],
-        help="Automático: Detecta por estructura de URL. NLP: Usa similitud semántica. Manual: Defines tú las categorías."
+        help="Automático: Detecta por estructura de URL. Manual: Defines tú las categorías."
     )
     
     # Categorías manuales si se selecciona
@@ -113,12 +113,11 @@ if client_file:
             urls_client = df_client['URL'].dropna().tolist()
             
             # Categorizar según modo
-            if mode == "Automático (Patrones)":
-                results, master_cats = categorize_urls_automatic(urls_client)
-            elif mode == "Manual":
+            if mode == "Manual":
                 results = categorize_urls_manual(urls_client, manual_cats)
                 master_cats = manual_cats
-            if mode == "Manual":
+            else:  # Automático
+                results, master_cats = categorize_urls_automatic(urls_client)
             
             # Agregar categorías al DataFrame
             results_dict = {r['url']: r['category'] for r in results}
@@ -149,9 +148,7 @@ if client_file:
                     urls_comp = df_comp['URL'].dropna().tolist()
                     
                     # Categorizar con las mismas categorías maestras
-                    if mode == "NLP (IA Semántica)":
-                        comp_cats = categorize_urls_nlp(urls_comp, master_cats)
-                    elif mode == "Manual":
+                    if mode == "Manual":
                         comp_cats = categorize_urls_manual(urls_comp, manual_cats)
                     else:
                         comp_cats, _ = categorize_urls_automatic(urls_comp)
@@ -293,88 +290,6 @@ if client_file:
                     "text/csv",
                     key=f"download_comp_{i}"
                 )
-        
-        st.divider()
-        
-        # GENERACIÓN DE REPORTE CON IA
-        if gemini_key:
-            st.header("🤖 Reporte con IA")
-            
-            if st.button("📄 Generar Reporte Estratégico"):
-                with st.spinner("Generando reporte... (30-40 seg)"):
-                    
-                    # Preparar datos para el prompt
-                    comp_data_str = ""
-                    for comp in comp_results:
-                        comp_counts = comp['df']['Categoría'].value_counts()
-                        comp_total = len(comp['df'])
-                        
-                        comp_data_str += f"\n{comp['name']}:\n"
-                        comp_data_str += f"- Total URLs: {comp_total}\n"
-                        comp_data_str += f"- Total Keywords: {comp['total_kws']}\n"
-                        comp_data_str += "- Top 5 Categorías:\n"
-                        
-                        for cat, count in comp_counts.head(5).items():
-                            pct = (count / comp_total * 100)
-                            comp_data_str += f"  - {cat}: {count} URLs ({pct:.1f}%)\n"
-                    
-                    client_counts = df_client['Categoría'].value_counts()
-                    client_total = len(df_client)
-                    
-                    prompt = f"""
-Eres un analista SEO competitivo experto. Genera un REPORTE ESTRATÉGICO COMPLETO:
-
-CLIENTE:
-- Total URLs: {client_total}
-- Total Keywords: {total_kws_client}
-- Top 5 Categorías:
-{chr(10).join([f"  - {cat}: {count} URLs ({count/client_total*100:.1f}%)" for cat, count in client_counts.head(5).items()])}
-
-COMPETIDORES:
-{comp_data_str}
-
-FORMATO:
-
-RESUMEN ESTRATÉGICO
-
-[Describe las estrategias de posicionamiento del mercado en 2-3 párrafos]
-
-ANÁLISIS DEL CLIENTE
-
-[Analiza fortalezas, distribución y estrategia del cliente en 2-3 párrafos con datos específicos]
-
-ANÁLISIS DE COMPETIDORES
-
-[Para cada competidor: Traffic Distribution, Content Strategy, Bottom Line]
-
-MARKET GAP Y OPORTUNIDADES
-
-[Identifica gaps específicos y 3-4 recomendaciones accionables]
-
-INSTRUCCIONES:
-- Usa porcentajes específicos
-- Identifica patrones estratégicos
-- Propón recomendaciones concretas
-- Lenguaje profesional y directo
-"""
-                    
-                    try:
-                        model = genai.GenerativeModel('gemini-2.5-flash')
-                        response = model.generate_content(prompt)
-                        
-                        st.markdown(response.text)
-                        
-                        # Opción de descargar
-                        report_txt = response.text.encode('utf-8')
-                        st.download_button(
-                            "📥 Descargar Reporte",
-                            report_txt,
-                            "reporte_seo_competitivo.txt",
-                            "text/plain"
-                        )
-                        
-                    except Exception as e:
-                        st.error(f"Error al generar reporte: {str(e)}")
 
 else:
     st.info("👆 Sube un archivo CSV del cliente para comenzar el análisis")
@@ -383,4 +298,4 @@ else:
 # FOOTER
 # ============================================
 st.divider()
-st.caption("🎯 SEO Categorization Tool | Powered by Streamlit & Gemini AI")
+st.caption("🎯 SEO Categorization Tool | Powered by Streamlit")
